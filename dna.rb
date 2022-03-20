@@ -1,4 +1,4 @@
-#!/home/jaureguir/bin/ruby --disable-gems
+#!usr/bin/ruby --disable-gems
 
 class Dna
   
@@ -84,13 +84,6 @@ class Dna
   
   def perm  ##random permutation of seq
     newseq = @seq.scan(/./).shuffle.join
-    #@seq.length.downto(1){|j|
-    #  u = rand(j+1)
-    #  next if u == j
-    #  demi = newseq[j..j]
-    #  newseq[j..j] = newseq[u..u]
-    #  newseq[u..u] = demi 
-    #}
     @seq = newseq
   end
   
@@ -201,11 +194,6 @@ class Dna
       per = (gt / nel) * 100
 	per
   end
-  
-  #def revcomp
-    #@seq.reverse!
-    #@seq.tr!('atgcrymkdhvbswn', 'tacgyrkmhdbvswn')
-  #end
   
   def slidegc(step) ##evaluate gc% in a sliding window
   	sal = String.new
