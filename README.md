@@ -5,9 +5,9 @@ argu.rb: argument parser
 
 dna.rb: DNA sequence manipulation methods
 
-dnal.rbL Methods to manipulate arrays of DNA objects
+dnal.rb: Methods to manipulate arrays of DNA objects
 
-gutfilter.rb: Filtering step from the microbiomics pipeline descriobed in:
+gutfilter.rb: Filtering step from the microbiomics pipeline described in:
 
 Camarinha-Silva A, Jáuregui R, Chaves-Moreno D, Oxley AP, Schaumburg F, Becker K, Wos-Oxley ML, Pieper DH. 
 Comparing the anterior nare bacterial community of two discrete human populations using Illumina amplicon sequencing. 
