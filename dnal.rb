@@ -1,4 +1,4 @@
-#!/home/jaureguir/bin/ruby --disable-gems
+#!/usr/bin/ruby --disable-gems
 ##class to manipulate lists of sequences
 require "dna.rb"
 class Dnal
