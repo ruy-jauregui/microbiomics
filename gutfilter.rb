@@ -1,14 +1,14 @@
 #!/usr/bin/ruby --disable-gems
-#the filter method only, from gutfilter
-require '/home/jaureguir/bin/dnal.rb'
-require '/home/jaureguir/bin/argu.rb'
+#microbiome filter method
+#reads data from the pipeline results described in: Camarinha-Silva A, Jáuregui R, Chaves-Moreno D, Oxley AP, Schaumburg F, Becker K, Wos-Oxley ML, Pieper DH. Comparing the anterior nare bacterial community of two discrete human populations using Illumina amplicon sequencing. Environ Microbiol. 2014 Sep;16(9):2939-52. doi: 10.1111/1462-2920.12362. Epub 2014 Jan 16. PMID: 24354520.
+require 'dnal.rb'
+require 'argu.rb'
 
 class Gut
       
       include Argu
       
-      def filter(clu,fas) # unique precluster name file, precluster fasta file
-            #cle = clu.split(/_|\./)
+      def filter(clu,fas) # unique precluster name file from mothur, precluster fasta file
             cle = clu.split(/\./) #to write the resulting files
             stamp = Time.new.strftime("%Y%m%d-%H%M%S") #time stamp for log file
             lof = File.open("#{cle[0]}-#{stamp}-log.csv","w") #the log file
@@ -18,8 +18,7 @@ class Gut
             cos.each{|k,v| oneinth[k] = v/10000} #the one in ten thousand thresholds
             grandtot = 0 #total number of reads in all samples
             cos.values.each{|v| grandtot += v }
-            #grandthr = 0.001 #the threshold, in %, on the abundance of the overall community
-            grandthr = 0.035 #used in Irene's Mathias millici water filters, or ITS data
+            grandthr = 0.01 #the threshold, in %, on the abundance of the overall community
             puts "total read No: #{grandtot}"
             mincom = (grandtot.to_f * grandthr) / 100.0 #minimal abundance in the whole set, including all samples
             #or override the overall community filter here, if you know how much you want:
@@ -30,7 +29,6 @@ class Gut
             #the thr1, testing if the rep is more than 1% of a single sample, is tested below, see variable fla1.
             ####
             thrh = {} #threshold on abundance in each sample, to combine with the No of samples that have it
-            #samabper = 0.1 #0.2 #sample abundance threshold in %, rep passes if present in samannyper samples with abundance higher than this
             samabper = 0.2
             cos.each{|k,v| thrh[k] = (v.to_f * samabper) / 100.0 ; puts "#{k} tot:#{v} #{samabper}% abundance thr: #{thrh[k]}"
                   lof.print("#{k}  tot:#{v} #{samabper}% abundance thr: #{thrh[k]}\n")
@@ -41,14 +39,11 @@ class Gut
             
             thr5 = (cos.keys.length.to_f * samper) / 100.0 #total sample number based on #{samper} %, beware! here that % of samples must have the read for the read to be kept
             thr5 = 2.0 if thr5 < 2.0 #floor threshold, the read is in at least 5 samples, -> no abundance check
-            #thr5 = 4.0 if thr5 < 5.0
             puts "OTUs will be kept if their local abundance is >#{grandthr * 100}% (in any given sample), and following these thresholds:"
             puts "Sample number threshold, #{samper} %, if an OTU is in #{thr5} samples, it is kept with no abundance check"
             lof.print("Sample number threshold, #{samper} %, if an OTU is in #{thr5} samples with any abundance, it is kept \n")
             #thr2 is the minimal sample No with read abundance bigger than thrh[k]
-            sammanyper = 2.0 # this value in x% of samples must have the rep with abundance higher than #{samabper} %
-            #sammanyper= 10.0 #for mathias water filters
-            
+            sammanyper = 2.0 # this value in x% of samples must have the rep with abundance higher than #{samabper} %            
             thr2 = (cos.keys.length.to_f * sammanyper ) / 100.0 # n% of samples, to implement in combination with the abundance threshold (thrh)
             thr2 = 2.0 if thr2 < 2.0 #floor threshold
             puts "the thr2, or #{sammanyper}% of total samples, each with with >= #{samabper}% read abundance in each sample is #{thr2}"
@@ -57,13 +52,11 @@ class Gut
             lof.print("minimal copy No per sample is set to #{maxthr}\n")
             repcps = {} #key is a representative seq id, value is an array of sample -> total count (adding up the clustered copies)
             keep = [] #will hold seq id's to keep, having passed ALL FILTERS<---!! (wow!)
-            #lin = "Index,seq,Total_copy_No,in_Sample_No,>1%,>0.1%,>0.01%,#{cos.keys.sort.join(",")}\n"
-            #lcn = "Index,seq,Total_copy_No,in_Sample_No,>1%,>0.1%,>0.01%,#{cos.keys.sort.join(",")}\n"
             lin = "Index,seq,Total_copy_No,in_Sample_No,#{cos.keys.sort.join(",")}\n"
             lcn = "Index,seq,Total_copy_No,in_Sample_No,#{cos.keys.sort.join(",")}\n"
             faline = "" #the fasta line
             myd = Dnal.new
-            myd.fromFaa(fas," ") ##<---------------------------------- BEWARE OF THE HEADER PATTERN!!! Here it splits by " " and keeps only header[0]
+            myd.fromFaa(fas," ") ##<---------Warinig: BEWARE OF THE HEADER PATTERN!!! Here it splits by " " and keeps only header[0]
             index = 1 #this will be the sequence name now
             File.open(clu).each do |s| #precluster name line
                   (he, re) = s.chomp.split(/\s+/) #representative seq, list of clustered seq ids
@@ -75,8 +68,6 @@ class Gut
                   alls.uniq.each{|e| cps[e] = alls.count(e).to_f } #sample name -> No of times it appears in the precluster line
                   tsc = alls.uniq.length.to_f #total sample count, total number of samples that have this read, alls has sample names
                   fla5 = false
-                  #fla5 = true #keep if the read is in more than thr5 (%) samples, to keep without abundance check
-                  #fla5 = false if tsc < thr5 #total sample count smaller than thr5 (5% of all samples), then check abundance.
                   minreadnum = false #minimal read number, will turn true if one sample has >= than maxthr reads
                   
                   fla1 = false #will turn true if one sample has the read in abundance >= 1%
@@ -99,28 +90,19 @@ class Gut
                               #fla1 = true if v > cos[k].to_f / 10000.0 #keep all that are > 0.01%, useful for sets with only two samples
                               countzero +=1 if  v > cos[k].to_f / 1000.0 #No of samples with this seq rep in >0.1% abundance
                               zeroone = cos[k].to_f / 10000.0 #0.01% abundance threshold
-                              #zeroone = (cos[k].to_f / 10000.0) * 2.0 #here 0.02% abundance
                               countthr5 += 1 if v > zeroone #add to count thr5 
-                              
-                        #else #v is < or = than the oneinten threshold
-                              #tcc -= v #remove the number of reads from the total of this phylotype
                         end
                   end
                   fla5 = true if countthr5 >= thr5 
                   lowfla = true if lowabc >= thr2 # at least n (thr2) samples with read abundance higher than 0.1% (thrh)
-                  
                   if (lowfla or fla5 or fla1)#or (tcc > mincom)) # n samples with abundance higher than thrh, OR present in more than thr5 samples OR read is 1% or more of all samples   
                         if (tcc > mincom and minreadnum)#mincom:thr on total copy No. tcc is total copy No. of this rep.
                               
                               keep.push(he)
                               repcps[he] = cps #seq rep -> hash with sample -> copy count
                               #removed header: #{he.gsub(/:|#/,"_")}
-                              #lin << "#{index},#{myd.faaha[he].seq},#{tcc.to_i},#{tsc.to_i},#{countone},#{countzero},#{countthr5},"
-                              #lcn << "#{index},#{myd.faaha[he].seq},#{tcc.to_i},#{tsc.to_i},#{countone},#{countzero},#{countthr5},"
                               lin << "#{index},#{myd.faaha[he].seq},#{tcc.to_i},#{tsc.to_i},"
                               lcn << "#{index},#{myd.faaha[he].seq},#{tcc.to_i},#{tsc.to_i},"
-                              #lin << "#{he.gsub(/:|#/,"_")},#{myd.faaha[he].seq},#{tcc.to_i},#{tsc.to_i},#{countone},#{countzero},"
-                              #lcn << "#{he.gsub(/:|#/,"_")},#{myd.faaha[he].seq},#{tcc.to_i},#{tsc.to_i},#{countone},#{countzero},"
                               faline << ">#{index}\n#{myd.faaha[he].seq}\n"   # collect the fasta in this line now
                               index += 1
                               cos.keys.sort.each do |m| #sample name
@@ -134,8 +116,6 @@ class Gut
                               end
                               lin << "\n"
                               lcn << "\n"
-                              #puts "index:#{index},lowfla:#{lowfla},fla5:#{fla5},fla1:#{fla1},tcc:#{tcc},minreadnum:#{minreadnum}"
-                              #puts "samples:#{alls.uniq}\ntot samp count #{tsc}"
                         end
                         
                   end
@@ -145,23 +125,14 @@ class Gut
             pretl << "\n"
             est = File.open("#{cle[0]}-table.csv","w")
             est.print lin
-            #est.print pretl #print totla read numbers in last row
             est.close
-            #ess = File.open("#{cle[0]}-table-count-#{stamp}.csv","w")
             ess = File.open("#{cle[0]}-table-count.csv","w")
             ess.print lcn
-            #ess.print pretl #total read numbers
             ess.close
             puts "retrieved #{lin.split(/\n/).length} reps"
-            #kefa = Dnal.new  
-            #keep.each{|d| kefa.faaseq.push(myd.faaha[d]) if myd.faaha[d] }
-            #kefa.modhead(":|#","_")
-            #puts "retrieved #{kefa.faaseq.length} seqs"
             puts "retrieved #{index} seqs"
             lof.print("retrieved #{index} seqs\n")
-            #esf = File.open("#{cle[0]}-gutfilter-#{stamp}.fa","w")
             esf = File.open("#{cle[0]}-gutfilter.fa","w")
-            #esf.print kefa.artoFaa
             esf.print faline
             esf.close
             lof.print "Min copy No: #{maxthr}\n"
@@ -172,7 +143,6 @@ class Gut
             stamp = Time.new.strftime("%Y%m%d-%H%M%S")
             #these are unique representatives and arrays of comma separated copies.
             coh = Hash.new(0.0) #counts the total number of seqs on each sample
-            #reaa = {} #seq rep -> array of sample names; by counting sample names we know copy number per sample
             File.open(uni).each do |s|
                   re = s.chomp.split(/\s+/)[1]
                   re.split(/,/).each do |sa|
@@ -181,14 +151,11 @@ class Gut
                         #hal(reaa,he,san) #seq representative -> array of sample names
                   end
             end
-            #return coh #unfiltered
-            #cohf = coh.delete_if {|k,v| v < 5000} #filter here for read number, if not done before.
             esc = File.open("failed-samples-#{stamp}.txt","w")
             esd = File.open("sample-read-Nos-#{stamp}.txt","w")
             esd.print "#{coh.keys.length} samples\nsample\treadNo\n"
             esc.print "sample\treadNo\n"
             coh.each do |k,v|
-                  #if v < 3000 #5000 usually
                   if v < 100 #low coverage test    
                         esc.print "#{k}\t#{v}\n"
                         coh.delete(k)
@@ -199,7 +166,6 @@ class Gut
             esc.close
             esd.close
             return coh
-            #return [reaa,coh] #rep seq -> array of sample names
       end
       
       def unfiltered_abundance #reads the *names and gives abundance of these, for very low coverage samples
@@ -225,5 +191,5 @@ class Gut
 end
 myg = Gut.new
 myg.filter(ARGV[0],ARGV[1]) #preclustername file, precluster fasta file
-#myg.readspersample(ARGV[0]) #mZebrafish_359nt.unique.precluster.names
+#myg.readspersample(ARGV[0])
 #myg.unfiltered_abundance
