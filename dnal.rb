@@ -1,6 +1,6 @@
 #!/home/jaureguir/bin/ruby --disable-gems
 ##class to manipulate lists of sequences
-require "/home/jaureguir/bin/dna.rb"
+require "dna.rb"
 class Dnal
   
   attr_accessor :faaseq, :faaha
@@ -54,7 +54,7 @@ class Dnal
   	neufas
   end
   
-  def toFaa(arg) #haaseq or faaha
+  def toFaa(arg) #haaseq or faaha printed to fasta format
   	lin = ""
   	if arg.class == Array
            arg.each{|o|
@@ -68,7 +68,7 @@ class Dnal
 	lin
   end
   
-  def artoFaa
+  def artoFaa #array to fasta
       lin = ""
       @faaseq.each{|v|
             lin << v.to_faa
@@ -77,7 +77,7 @@ class Dnal
       lin
   end
   
-  def hatoFaa
+  def hatoFaa #hash to fasta
       lin = ""
       @faaha.each{|k,v|
             lin << v.to_faa      
@@ -91,7 +91,7 @@ class Dnal
    @faaseq.push(sek)
   end
   
-  def fromFaa(aFile,apa)
+  def fromFaa(aFile,apa) #main reader, from fasta format to DNA objects in an array/hash
     rege = "Iwillnevereversplithteheaderofthisfastaseq" 
     if apa.length > 0
       #apa.gsub(/\|/,"\|") if apa =~ /\|/
@@ -157,13 +157,7 @@ class Dnal
       @faaseq.push(sek)
     }
   end
-  
-  def fromSeq(aFile) ##file.seq, in curva format
-    sek = Dna.new
-    sek.fromSeq(aFile)
-    @faaseq.push(sek)
-  end
-  
+ 
   def fromGbk(af) #a *.gbk file
         sek = Dna.new
         sek.fromGbk(af)
@@ -181,7 +175,7 @@ class Dnal
 	@faaseq = tar
   end
   
-  def getsome(num) ##gets n entries at random
+  def getsome(num) ##gets num entries at random
   	srand
   	sel = Array.new
 	lar = @faaseq.length
